@@ -1,12 +1,13 @@
 // BriefingPage — parent container for the full driver briefing flow.
 // Steps 1.2–1.6 all live here, revealed progressively.
-// Currently shows: language selector (Step 1.2) + briefing text (Step 1.3).
+// Currently shows: language selector (Step 1.2) + briefing text (Step 1.3) + audio player (Step 1.4).
 
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../../services/firebase'
 import LanguageSelector from '../../components/driver/LanguageSelector'
+import AudioPlayer from '../../components/driver/AudioPlayer'
 
 // ---------------------------------------------------------------------------
 // Module-level constants — defined once, never re-allocated on render
@@ -85,6 +86,13 @@ const LANG_FIELD = {
   en: 'generatedBriefingEn',
   pu: 'generatedBriefingPu',
   hi: 'generatedBriefingHi',
+}
+
+// Firestore field names for TTS audio URLs
+const AUDIO_FIELD = {
+  en: 'audioUrlEn',
+  pu: 'audioUrlPu',
+  hi: 'audioUrlHi',
 }
 
 // Returns real Firestore text if it exists and is non-empty; falls back to placeholder.
@@ -237,6 +245,9 @@ export default function BriefingPage() {
                   </div>
                 )}
 
+                {/* Step 1.4: Audio player — auto-plays after Start Briefing gesture */}
+                <AudioPlayer audioUrl={briefing[AUDIO_FIELD[selectedLanguage]] ?? null} />
+
                 {/* Briefing text card */}
                 <div className="bg-white border border-gray-200 rounded-2xl px-6 py-6">
                   <p className="text-base leading-relaxed text-gray-700 whitespace-pre-line">
@@ -252,7 +263,6 @@ export default function BriefingPage() {
                   )}
                 </div>
 
-                {/* Step 1.4 (audio player) added here */}
                 {/* Step 1.5 (PDF list) added here */}
                 {/* Step 1.6 (acknowledgement form) added here */}
               </div>
