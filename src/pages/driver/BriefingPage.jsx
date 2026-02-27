@@ -123,7 +123,7 @@ export default function BriefingPage() {
             {/* Steps 1.3–1.6 added here in subsequent steps */}
             {started && (
               <div className="px-6 py-8 text-center text-gray-500 text-sm">
-                <p>✅ Language selected: <strong>{selectedLanguage === 'en' ? 'English' : 'ਪੰਜਾਬੀ'}</strong></p>
+                <p>✅ Language selected: <strong>{{ en: 'English', pu: 'ਪੰਜਾਬੀ', hi: 'हिंदी' }[selectedLanguage]}</strong></p>
                 <p className="mt-2 text-gray-400">Briefing content coming in Step 1.3.</p>
               </div>
             )}

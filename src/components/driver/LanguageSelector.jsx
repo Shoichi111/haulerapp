@@ -1,5 +1,5 @@
 // LanguageSelector — shown before the briefing starts.
-// Driver picks English or Punjabi, then taps "Start Briefing".
+// Driver picks English, Punjabi, or Hindi, then taps "Start Briefing".
 // The "Start Briefing" tap is required to unlock audio autoplay on mobile.
 
 export default function LanguageSelector({ selectedLanguage, onSelect, onStart }) {
@@ -15,6 +15,12 @@ export default function LanguageSelector({ selectedLanguage, onSelect, onStart }
       flag: '🇮🇳',
       label: 'ਪੰਜਾਬੀ',
       subtitle: 'ਪੰਜਾਬੀ ਵਿੱਚ ਜਾਰੀ ਰੱਖੋ',
+    },
+    {
+      code: 'hi',
+      flag: '🇮🇳',
+      label: 'हिंदी',
+      subtitle: 'हिंदी में जारी रखें',
     },
   ]
 
@@ -40,6 +46,7 @@ export default function LanguageSelector({ selectedLanguage, onSelect, onStart }
                 isSelected
                   ? 'border-yellow-400 bg-yellow-50'
                   : 'border-gray-200 bg-white',
+                lang.code === 'hi' ? 'col-span-2' : '',
               ].join(' ')}
             >
               <span className="text-4xl mb-3">{lang.flag}</span>
