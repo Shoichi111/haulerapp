@@ -105,6 +105,7 @@ haulerapp/
   audioUrlEn: string              ← TTS audio URL (English)
   audioUrlPu: string              ← TTS audio URL (Punjabi)
   pdfUrls: [{name, url}]          ← Attached PDFs
+  photoUrls: [{name, url}]        ← Attached photos (shown inline on driver side)
   status: 'draft' | 'processing' | 'published' | 'error'
   isActive: boolean               ← Only one active briefing per project
   briefingDate: string            ← YYYY-MM-DD
@@ -163,10 +164,12 @@ haulerapp/
 7. **SMS deduplication.** Cloud Function uses a Firestore transaction to atomically check and set `smsSent`. Duplicate SMS sends are impossible even if two function instances fire simultaneously.
 
 8. **Storage paths:**
-   - `published/{briefingId}/` — publicly readable (PDFs + audio for live briefings)
-   - `drafts/{briefingId}/` — admin-only (PDFs during briefing creation)
+   - `published/{briefingId}/` — publicly readable (PDFs + photos + audio for live briefings)
+   - `drafts/{briefingId}/` — admin-only (PDFs + photos during briefing creation)
    - `recordings/{briefingId}/` — admin-only (voice recordings for Whisper)
-   Draft PDFs are copied to `published/` when briefing is published, then drafts are deleted.
+   Draft PDFs and photos are copied to `published/` when briefing is published, then drafts are deleted.
+
+9. **Photo uploads:** CC can attach photos to a briefing (jpg, jpeg, png, webp — max 10MB each). Photos are stored in `drafts/{briefingId}/photos/` and copied to `published/{briefingId}/photos/` on publish. On the driver side, photos appear inline in the briefing view (between briefing text and PDF list). Same frozen/versioning rules apply as PDFs.
 
 ---
 
