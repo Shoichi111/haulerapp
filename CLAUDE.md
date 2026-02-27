@@ -231,6 +231,16 @@ Used in `functions/src/briefing.js` when generating safety briefings:
 Full step-by-step build plan: `/Users/mghias/.claude/plans/glistening-swinging-ullman.md`
 28 steps across 7 sections. We build one step at a time. Each step must work before the next begins.
 
+### Plan Mode (mandatory)
+Before implementing ANY code change — no matter how small — Claude MUST:
+1. Call `EnterPlanMode`
+2. Explore the codebase and write the plan to the plan file
+3. Call `ExitPlanMode` to present the plan for user approval
+4. Wait for explicit user approval before writing a single line of code
+
+This applies to every step, every hotfix, every tweak. No exceptions.
+Skipping plan mode is a workflow violation.
+
 ### Post-Step Audit (mandatory)
 After every step's code is written and before the git commit, an independent AI audit agent runs automatically. It:
 - Reviews all files created or modified in that step
