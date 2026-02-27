@@ -38,5 +38,5 @@ Do NOT accumulate historical plans in the plan file.
 ## Current Status
 
 Step 0.1 ✅ Step 0.2 ✅ Step 0.3 ✅ Step 0.4 ✅ Step 0.5 ✅ Step 0.6 ✅
-Step 1.1 ✅ Step 1.2 ✅ (+ Hindi ✅)
-Step 1.3 🔄
+Step 1.1 ✅ Step 1.2 ✅ (+ Hindi ✅) Step 1.3 ✅
+Step 1.4 🔄
