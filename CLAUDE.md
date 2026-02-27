@@ -223,9 +223,18 @@ Used in `functions/src/briefing.js` when generating safety briefings:
 
 ---
 
-## Build Plan Reference
+## Build Workflow
 
 Full step-by-step build plan: `/Users/mghias/.claude/plans/glistening-swinging-ullman.md`
 28 steps across 7 sections. We build one step at a time. Each step must work before the next begins.
 
-Current status: Step 0.1 ✅ Step 0.2 ✅
+### Post-Step Audit (mandatory)
+After every step's code is written and before the git commit, an independent AI audit agent runs automatically. It:
+- Reviews all files created or modified in that step
+- Checks for bugs, logic errors, security issues, and deviations from the plan
+- Reports findings clearly
+- Fixes any issues before the commit is made
+
+No step is committed to Git until it passes the audit.
+
+Current status: Step 0.1 ✅ Step 0.2 ✅ Step 0.3 ✅ Step 0.4 ✅ Step 0.5 ✅
