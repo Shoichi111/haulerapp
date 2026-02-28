@@ -14,6 +14,7 @@ function App() {
         {/* Admin routes */}
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/create-briefing" element={<div className="min-h-screen bg-gray-100 flex items-center justify-center"><p className="text-gray-500">Create Briefing — coming in Step 2.3</p></div>} />
       </Routes>
     </BrowserRouter>
   )
