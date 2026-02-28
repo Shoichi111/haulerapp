@@ -18,3 +18,6 @@ export const transcribeAudio = httpsCallable(functions, 'transcribeAudio');
 
 // Acknowledgement submission — validates + saves to Firestore via Cloud Function
 export const submitAcknowledgement = httpsCallable(functions, 'submitAcknowledgement');
+
+// Set admin custom claim — bootstraps first admin or promotes new admins
+export const setAdminClaim = httpsCallable(functions, 'setAdminClaim');

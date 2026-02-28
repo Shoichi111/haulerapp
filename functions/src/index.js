@@ -76,3 +76,40 @@ exports.submitAcknowledgement = onCall(async (request) => {
 
   return { success: true };
 });
+
+// Set admin custom claim + create admins/ doc — bootstraps admin access.
+// For POC: called once manually after creating the test CC account in Firebase Auth console.
+// After this, user must sign out and back in for the custom claim to take effect.
+exports.setAdminClaim = onCall(async (request) => {
+  const { uid } = request.data;
+
+  if (!uid || typeof uid !== 'string') {
+    throw new HttpsError('invalid-argument', 'A valid UID is required.');
+  }
+
+  // For initial bootstrap: allow if no admins exist yet.
+  // After that: only existing admins can promote new admins.
+  const adminsSnapshot = await db.collection('admins').limit(1).get();
+  const hasAdmins = !adminsSnapshot.empty;
+
+  if (hasAdmins) {
+    // Verify caller is an existing admin
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Must be signed in.');
+    }
+    const callerDoc = await db.collection('admins').doc(request.auth.uid).get();
+    if (!callerDoc.exists) {
+      throw new HttpsError('permission-denied', 'Only admins can set admin claims.');
+    }
+  }
+
+  // Set custom claim on the target user
+  await admin.auth().setCustomUserClaims(uid, { admin: true });
+
+  // Create admins/ document so Firestore security rules work
+  await db.collection('admins').doc(uid).set({
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return { success: true, message: `Admin claim set for ${uid}. User must sign out and back in.` };
+});
