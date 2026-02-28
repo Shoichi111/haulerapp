@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { collection, doc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, storage } from '../../services/firebase';
+import { transcribeAudio } from '../../services/api';
 import VoiceRecorder from './VoiceRecorder';
 
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -78,6 +79,13 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+
+      // Fire-and-forget transcription for voice drafts
+      if (inputMode === 'voice') {
+        transcribeAudio({ briefingId: briefingRef.id }).catch((err) => {
+          console.error('Transcription request failed:', err);
+        });
+      }
 
       onSaved();
     } catch (err) {
@@ -167,7 +175,7 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
             <p className="text-sm text-gray-700 mb-2">Record a voice note for today's work and hazards.</p>
             <VoiceRecorder value={voiceRecording} onChange={setVoiceRecording} />
             <p className="text-xs text-gray-400 mt-1">
-              After saving, this draft is marked transcription pending until Step 3.1 is connected.
+              After saving, your recording will be automatically transcribed.
             </p>
           </>
         )}
