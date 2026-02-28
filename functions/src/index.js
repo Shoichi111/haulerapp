@@ -6,7 +6,6 @@ const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https')
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const OpenAI = require('openai');
-const { toFile } = require('openai');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -118,47 +117,59 @@ exports.setAdminClaim = onCall(async (request) => {
 
 // Whisper transcription — downloads voice recording from Storage, sends to OpenAI Whisper,
 // writes transcribed text back to the briefing document in Firestore.
-exports.transcribeAudio = onCall({ secrets: [OPENAI_API_KEY] }, async (request) => {
+exports.transcribeAudio = onCall({ secrets: [OPENAI_API_KEY], timeoutSeconds: 120 }, async (request) => {
   const { briefingId } = request.data;
+  console.log('transcribeAudio called', { briefingId });
 
   if (!briefingId || typeof briefingId !== 'string') {
     throw new HttpsError('invalid-argument', 'briefingId is required.');
   }
 
-  // 1. Read briefing doc
-  const briefingDoc = await db.collection('briefings').doc(briefingId).get();
-  if (!briefingDoc.exists) {
-    throw new HttpsError('not-found', 'Briefing not found.');
+  try {
+    // 1. Read briefing doc
+    const briefingDoc = await db.collection('briefings').doc(briefingId).get();
+    if (!briefingDoc.exists) {
+      throw new HttpsError('not-found', 'Briefing not found.');
+    }
+
+    const briefing = briefingDoc.data();
+    if (briefing.transcriptionStatus !== 'pending') {
+      throw new HttpsError('failed-precondition', 'Briefing is not pending transcription.');
+    }
+    if (!briefing.recordingPath) {
+      throw new HttpsError('failed-precondition', 'No recording path found.');
+    }
+
+    // 2. Download audio from Storage
+    console.log('Downloading audio from', briefing.recordingPath);
+    const bucket = admin.storage().bucket();
+    const [buffer] = await bucket.file(briefing.recordingPath).download();
+    console.log('Downloaded', buffer.length, 'bytes');
+
+    // 3. Transcribe with Whisper (use native File instead of toFile)
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY.value() });
+    const filename = briefing.recordingPath.split('/').pop();
+    const mimeType = briefing.recordingMimeType || 'audio/webm';
+    const file = new File([buffer], filename, { type: mimeType });
+
+    console.log('Sending to Whisper', { filename, mimeType, size: buffer.length });
+    const result = await openai.audio.transcriptions.create({
+      file,
+      model: 'whisper-1',
+    });
+    console.log('Transcription complete', { textLength: result.text.length });
+
+    // 4. Update Firestore with transcribed text
+    await db.collection('briefings').doc(briefingId).update({
+      originalInput: result.text,
+      transcriptionStatus: 'complete',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true, transcription: result.text };
+  } catch (err) {
+    console.error('transcribeAudio failed:', err);
+    if (err instanceof HttpsError) throw err;
+    throw new HttpsError('internal', 'Transcription failed. Please try again.');
   }
-
-  const briefing = briefingDoc.data();
-  if (briefing.transcriptionStatus !== 'pending') {
-    throw new HttpsError('failed-precondition', 'Briefing is not pending transcription.');
-  }
-  if (!briefing.recordingPath) {
-    throw new HttpsError('failed-precondition', 'No recording path found.');
-  }
-
-  // 2. Download audio from Storage
-  const bucket = admin.storage().bucket();
-  const [buffer] = await bucket.file(briefing.recordingPath).download();
-
-  // 3. Transcribe with Whisper
-  const openai = new OpenAI({ apiKey: OPENAI_API_KEY.value() });
-  const filename = briefing.recordingPath.split('/').pop();
-  const file = await toFile(buffer, filename);
-
-  const result = await openai.audio.transcriptions.create({
-    file,
-    model: 'whisper-1',
-  });
-
-  // 4. Update Firestore with transcribed text
-  await db.collection('briefings').doc(briefingId).update({
-    originalInput: result.text,
-    transcriptionStatus: 'complete',
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-
-  return { success: true, transcription: result.text };
 });

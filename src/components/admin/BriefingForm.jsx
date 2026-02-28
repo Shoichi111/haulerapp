@@ -80,11 +80,9 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
         updatedAt: serverTimestamp(),
       });
 
-      // Fire-and-forget transcription for voice drafts
+      // Transcribe voice recording before navigating away
       if (inputMode === 'voice') {
-        transcribeAudio({ briefingId: briefingRef.id }).catch((err) => {
-          console.error('Transcription request failed:', err);
-        });
+        await transcribeAudio({ briefingId: briefingRef.id });
       }
 
       onSaved();
