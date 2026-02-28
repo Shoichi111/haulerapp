@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { collection, doc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { db, storage } from '../../services/firebase';
+import VoiceRecorder from './VoiceRecorder';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
 export default function BriefingForm({ projectId, userEmail, onSaved }) {
   const [briefingDate, setBriefingDate] = useState(TODAY);
+  const [inputMode, setInputMode] = useState('text');
   const [textInput, setTextInput] = useState('');
+  const [voiceRecording, setVoiceRecording] = useState(null);
   const [ccPhone, setCcPhone] = useState('');
   const [dispatchName, setDispatchName] = useState('');
   const [dispatchPhone, setDispatchPhone] = useState('');
@@ -21,12 +25,45 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
     setSaving(true);
 
     try {
+      const trimmedText = textInput.trim();
+      if (inputMode === 'text' && !trimmedText) {
+        throw new Error('Please enter briefing text or switch to voice mode.');
+      }
+      if (inputMode === 'voice' && !voiceRecording) {
+        throw new Error('Please record audio before saving.');
+      }
+
+      const briefingRef = doc(collection(db, 'briefings'));
+
       // Build expectedStartTime from briefingDate + startTime
       const startDateTime = new Date(`${briefingDate}T${startTime}:00`);
 
-      await addDoc(collection(db, 'briefings'), {
+      let recordingUrl = null;
+      let recordingPath = null;
+      let recordingMimeType = null;
+      let recordingDurationMs = null;
+
+      if (inputMode === 'voice' && voiceRecording) {
+        const extension = voiceRecording.mimeType.includes('mp4') ? 'mp4' : 'webm';
+        recordingPath = `recordings/${briefingRef.id}/briefing.${extension}`;
+        const storageRef = ref(storage, recordingPath);
+        await uploadBytes(storageRef, voiceRecording.blob, {
+          contentType: voiceRecording.mimeType,
+        });
+        recordingUrl = await getDownloadURL(storageRef);
+        recordingMimeType = voiceRecording.mimeType;
+        recordingDurationMs = voiceRecording.durationMs;
+      }
+
+      await setDoc(briefingRef, {
         projectId,
-        originalInput: textInput.trim(),
+        originalInput: inputMode === 'text' ? trimmedText : '',
+        inputMode,
+        recordingUrl,
+        recordingPath,
+        recordingMimeType,
+        recordingDurationMs,
+        transcriptionStatus: inputMode === 'voice' ? 'pending' : null,
         status: 'draft',
         isActive: false,
         briefingDate,
@@ -45,7 +82,7 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
       onSaved();
     } catch (err) {
       console.error('Save draft failed:', err);
-      setError('Failed to save briefing. Please try again.');
+      setError(err.message || 'Failed to save briefing. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -74,21 +111,66 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
         />
       </div>
 
+      {/* Input mode */}
+      <div>
+        <p className="block text-sm font-medium text-gray-700 mb-2">Briefing Input Method</p>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setInputMode('text')}
+            className={[
+              'rounded-lg border px-3 py-2 text-sm font-semibold transition-colors',
+              inputMode === 'text'
+                ? 'border-yellow-400 bg-yellow-50 text-yellow-800'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
+            ].join(' ')}
+          >
+            Type Briefing
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputMode('voice')}
+            className={[
+              'rounded-lg border px-3 py-2 text-sm font-semibold transition-colors',
+              inputMode === 'voice'
+                ? 'border-yellow-400 bg-yellow-50 text-yellow-800'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
+            ].join(' ')}
+          >
+            Record Voice
+          </button>
+        </div>
+      </div>
+
       {/* Briefing Text */}
       <div>
-        <label htmlFor="textInput" className="block text-sm font-medium text-gray-700 mb-1">
-          Describe today's work and hazards
-        </label>
-        <textarea
-          id="textInput"
-          required
-          rows={6}
-          placeholder="E.g., Paving on eastbound lanes today. Asphalt trucks entering and exiting. Watch for rollers and paving machine..."
-          value={textInput}
-          onChange={(e) => setTextInput(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
-        />
-        <p className="text-xs text-gray-400 mt-1">AI will rewrite this as a professional safety briefing in Step 3.2.</p>
+        {inputMode === 'text' ? (
+          <>
+            <label htmlFor="textInput" className="block text-sm font-medium text-gray-700 mb-1">
+              Describe today's work and hazards
+            </label>
+            <textarea
+              id="textInput"
+              required={inputMode === 'text'}
+              rows={6}
+              placeholder="E.g., Paving on eastbound lanes today. Asphalt trucks entering and exiting. Watch for rollers and paving machine..."
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              AI will rewrite this as a professional safety briefing in Step 3.2.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-gray-700 mb-2">Record a voice note for today's work and hazards.</p>
+            <VoiceRecorder value={voiceRecording} onChange={setVoiceRecording} />
+            <p className="text-xs text-gray-400 mt-1">
+              After saving, this draft is marked transcription pending until Step 3.1 is connected.
+            </p>
+          </>
+        )}
       </div>
 
       {/* CC Phone */}
@@ -175,7 +257,7 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
         disabled={saving}
         className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 text-gray-900 font-semibold py-2.5 rounded-lg transition-colors"
       >
-        {saving ? 'Saving…' : 'Save Draft'}
+        {saving ? 'Saving...' : 'Save Draft'}
       </button>
     </form>
   );
