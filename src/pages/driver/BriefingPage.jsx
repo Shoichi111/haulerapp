@@ -1,6 +1,6 @@
 // BriefingPage — parent container for the full driver briefing flow.
 // Steps 1.2–1.6 all live here, revealed progressively.
-// Currently shows: language selector (Step 1.2) + briefing text (Step 1.3) + audio player (Step 1.4) + PDF/photo attachments (Step 1.5).
+// Currently shows: language selector (Step 1.2) + briefing text (Step 1.3) + audio player (Step 1.4) + PDF/photo attachments (Step 1.5) + acknowledgement form (Step 1.6).
 
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -9,6 +9,7 @@ import { db } from '../../services/firebase'
 import LanguageSelector from '../../components/driver/LanguageSelector'
 import AudioPlayer from '../../components/driver/AudioPlayer'
 import PDFDocumentList from '../../components/driver/PDFDocumentList'
+import AcknowledgementForm from '../../components/driver/AcknowledgementForm'
 
 // ---------------------------------------------------------------------------
 // Module-level constants — defined once, never re-allocated on render
@@ -269,7 +270,13 @@ export default function BriefingPage() {
                   pdfUrls={briefing.pdfUrls ?? null}
                   photoUrls={briefing.photoUrls ?? null}
                 />
-                {/* Step 1.6 (acknowledgement form) added here */}
+                {/* Step 1.6: Acknowledgement form */}
+                <AcknowledgementForm
+                  briefingId={briefing.id}
+                  briefingVersion={briefing.version ?? 1}
+                  projectId={projectId}
+                  selectedLanguage={selectedLanguage}
+                />
               </div>
             )}
           </>
