@@ -1,37 +1,33 @@
 # CLAUDE.md — Dufferin Safety Briefing App
 
 This file contains Claude's workflow rules for this project.
-- **Full technical reference** (schema, security rules, architecture): `APP_DEFINITION.md`
-- **28-step build guide** (what to build, current progress): `HOW_WE_BUILD_IT.md`
 
 ---
 
-## Plan Mode (mandatory)
+## Token Optimization (CRITICAL)
 
-Before implementing ANY code change — no matter how small — Claude MUST:
-1. Call `EnterPlanMode`
-2. Explore the codebase and write the plan to the plan file
-3. Call `ExitPlanMode` to present the plan for user approval
-4. Wait for explicit user approval before writing a single line of code
+### Do NOT read these files unless explicitly asked:
+- `APP_DEFINITION.md`
+- `HOW_WE_BUILD_IT.md`
+If a task seems to require them, ask the user first.
 
-This applies to every step, every hotfix, every tweak. No exceptions.
-Skipping plan mode is a workflow violation.
+### MCP — Firebase only:
+- All other MCP servers (Serena, Morph, Playwright, Claude in Chrome, Claude Preview) must NOT be used.
+- Do NOT spawn subagents (Explore, Plan, Audit). Do all work inline.
 
 ---
 
-## Post-Step Audit (mandatory)
+## Post-Step Audit (inline only)
 
-After every step's code is written and before the git commit, run an independent AI audit agent.
-The agent reviews all files created or modified, checks for bugs, security issues, and deviations from the plan.
-No step is committed to Git until the audit returns APPROVED.
+Quick inline self-review of changed files before committing. No subagent.
+Build check (`npm run build`) is the primary validation.
 
 ---
 
 ## Plan File
 
-Keep the plan file lean — current step only. One step at a time.
-After a step is committed, overwrite the plan with the next step's plan.
-Do NOT accumulate historical plans in the plan file.
+Keep the plan file lean — current step only.
+After a step is committed, overwrite with the next step's plan.
 
 ---
 
