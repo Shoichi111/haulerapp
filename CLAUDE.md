@@ -17,6 +17,12 @@ If a task seems to require them, ask the user first.
 
 ---
 
+## Lessons File
+
+Always update `LESSONS.md` with important lessons or solutions that solved problems during the build. Read it before starting work to avoid repeating past mistakes.
+
+---
+
 ## Post-Step Audit (inline only)
 
 Quick inline self-review of changed files before committing. No subagent.
@@ -28,14 +34,6 @@ Build check (`npm run build`) is the primary validation.
 
 Keep the plan file lean — current step only.
 After a step is committed, overwrite with the next step's plan.
-
----
-
-## OpenAI Model
-
-Use `gpt-4o-mini` for all Cloud Function calls (generation + translation).
-Legacy `gpt-4` hits `insufficient_quota` (429) due to rate limits — even with credits.
-Always deploy from the **worktree** directory, not the main repo root.
 
 ---
 
