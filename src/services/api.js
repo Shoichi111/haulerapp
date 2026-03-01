@@ -16,6 +16,9 @@ export const generateBriefing = httpsCallable(functions, 'generateBriefing');
 // Audio transcription — sends voice recording to Whisper via Cloud Function
 export const transcribeAudio = httpsCallable(functions, 'transcribeAudio');
 
+// Briefing translation — re-translates English briefing to Punjabi + Hindi
+export const translateBriefing = httpsCallable(functions, 'translateBriefing');
+
 // Acknowledgement submission — validates + saves to Firestore via Cloud Function
 export const submitAcknowledgement = httpsCallable(functions, 'submitAcknowledgement');
 

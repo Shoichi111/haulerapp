@@ -173,3 +173,134 @@ exports.transcribeAudio = onCall({ secrets: [OPENAI_API_KEY], timeoutSeconds: 12
     throw new HttpsError('internal', 'Transcription failed. Please try again.');
   }
 });
+
+// Shared helper — translates English briefing text to Punjabi and Hindi in parallel.
+async function translateTexts(openai, englishText) {
+  const systemPromptFor = (lang) =>
+    `Translate this construction site safety briefing to ${lang}. Keep the same structure and formatting including any bullet points. Use natural conversational language that construction workers would understand.`;
+
+  const [punjabi, hindi] = await Promise.all([
+    openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPromptFor('Punjabi') },
+        { role: 'user', content: englishText },
+      ],
+    }),
+    openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPromptFor('Hindi') },
+        { role: 'user', content: englishText },
+      ],
+    }),
+  ]);
+
+  return {
+    punjabi: punjabi.choices[0].message.content,
+    hindi: hindi.choices[0].message.content,
+  };
+}
+
+// Generate briefing — rewrites CC's raw input as a professional English safety briefing,
+// then auto-translates to Punjabi and Hindi. Three GPT-4 calls total.
+exports.generateBriefing = onCall({ secrets: [OPENAI_API_KEY], timeoutSeconds: 120 }, async (request) => {
+  const { briefingId } = request.data;
+  console.log('generateBriefing called', { briefingId });
+
+  if (!briefingId || typeof briefingId !== 'string') {
+    throw new HttpsError('invalid-argument', 'briefingId is required.');
+  }
+
+  try {
+    // 1. Read briefing doc
+    const briefingDoc = await db.collection('briefings').doc(briefingId).get();
+    if (!briefingDoc.exists) {
+      throw new HttpsError('not-found', 'Briefing not found.');
+    }
+
+    const briefing = briefingDoc.data();
+    if (!briefing.originalInput || !briefing.originalInput.trim()) {
+      throw new HttpsError('failed-precondition', 'No original input text found.');
+    }
+
+    // 2. Generate professional English briefing via GPT-4
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY.value() });
+    console.log('Generating English briefing', { inputLength: briefing.originalInput.length });
+
+    const englishResult = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a construction site safety coordinator. Rewrite the following rough notes into a clear, professional safety briefing for truck drivers arriving at a construction site. Use bullet points for key hazards and instructions. Keep it concise but thorough. Include any site-specific details mentioned.',
+        },
+        { role: 'user', content: briefing.originalInput },
+      ],
+    });
+
+    const englishBriefing = englishResult.choices[0].message.content;
+    console.log('English briefing generated', { length: englishBriefing.length });
+
+    // 3. Translate to Punjabi and Hindi in parallel
+    console.log('Translating to Punjabi and Hindi');
+    const translations = await translateTexts(openai, englishBriefing);
+    console.log('Translations complete', {
+      punjabiLength: translations.punjabi.length,
+      hindiLength: translations.hindi.length,
+    });
+
+    // 4. Save all three versions to Firestore
+    await db.collection('briefings').doc(briefingId).update({
+      generatedBriefingEn: englishBriefing,
+      generatedBriefingPu: translations.punjabi,
+      generatedBriefingHi: translations.hindi,
+      status: 'generated',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error('generateBriefing failed:', err);
+    if (err instanceof HttpsError) throw err;
+    throw new HttpsError('internal', 'Briefing generation failed. Please try again.');
+  }
+});
+
+// Re-translate — reads existing English briefing and re-translates to Punjabi and Hindi.
+// Useful if the English text was edited after initial generation.
+exports.translateBriefing = onCall({ secrets: [OPENAI_API_KEY], timeoutSeconds: 120 }, async (request) => {
+  const { briefingId } = request.data;
+  console.log('translateBriefing called', { briefingId });
+
+  if (!briefingId || typeof briefingId !== 'string') {
+    throw new HttpsError('invalid-argument', 'briefingId is required.');
+  }
+
+  try {
+    const briefingDoc = await db.collection('briefings').doc(briefingId).get();
+    if (!briefingDoc.exists) {
+      throw new HttpsError('not-found', 'Briefing not found.');
+    }
+
+    const briefing = briefingDoc.data();
+    if (!briefing.generatedBriefingEn || !briefing.generatedBriefingEn.trim()) {
+      throw new HttpsError('failed-precondition', 'No English briefing found. Generate the briefing first.');
+    }
+
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY.value() });
+    const translations = await translateTexts(openai, briefing.generatedBriefingEn);
+
+    await db.collection('briefings').doc(briefingId).update({
+      generatedBriefingPu: translations.punjabi,
+      generatedBriefingHi: translations.hindi,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error('translateBriefing failed:', err);
+    if (err instanceof HttpsError) throw err;
+    throw new HttpsError('internal', 'Translation failed. Please try again.');
+  }
+});
