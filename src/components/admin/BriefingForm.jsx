@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { collection, doc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, storage } from '../../services/firebase';
-import { transcribeAudio } from '../../services/api';
+import { transcribeAudio, generateBriefing } from '../../services/api';
 import VoiceRecorder from './VoiceRecorder';
 
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -18,6 +18,7 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
   const [expectedTrucks, setExpectedTrucks] = useState('');
   const [startTime, setStartTime] = useState('07:00');
   const [saving, setSaving] = useState(false);
+  const [savingStatus, setSavingStatus] = useState('');
   const [error, setError] = useState('');
 
   async function handleSubmit(e) {
@@ -80,10 +81,15 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
         updatedAt: serverTimestamp(),
       });
 
-      // Transcribe voice recording before navigating away
+      // Transcribe voice recording before generating
       if (inputMode === 'voice') {
+        setSavingStatus('Transcribing voice...');
         await transcribeAudio({ briefingId: briefingRef.id });
       }
+
+      // Generate English briefing + auto-translate to Punjabi/Hindi
+      setSavingStatus('Generating briefing...');
+      await generateBriefing({ briefingId: briefingRef.id });
 
       onSaved();
     } catch (err) {
@@ -263,7 +269,7 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
         disabled={saving}
         className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 text-gray-900 font-semibold py-2.5 rounded-lg transition-colors"
       >
-        {saving ? 'Saving...' : 'Save Draft'}
+        {saving ? (savingStatus || 'Saving...') : 'Save Draft'}
       </button>
     </form>
   );

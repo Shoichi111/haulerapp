@@ -16,6 +16,12 @@ This file contains Claude's workflow rules for this project.
 
 ---
 
+## Lessons File
+
+Always update `LESSONS.md` with important lessons or solutions that solved problems during the build. Read it before starting work to avoid repeating past mistakes.
+
+---
+
 ## Post-Step Audit (inline only)
 
 Quick inline self-review of changed files before committing. No subagent.
