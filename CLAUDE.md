@@ -15,6 +15,11 @@ This file contains Claude's workflow rules for this project.
 - All other MCP servers (Serena, Morph, Playwright, Claude in Chrome, Claude Preview) must NOT be used.
 - Do NOT spawn subagents (Explore, Plan, Audit). Do all work inline.
 
+### Git — NO worktrees (CRITICAL):
+- NEVER use git worktrees. Always work directly on the `main` branch.
+- NEVER create feature branches. Commit directly to `main`.
+- This is a single-developer POC — branching adds complexity with zero benefit.
+
 ---
 
 ## Lessons File
