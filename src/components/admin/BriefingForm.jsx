@@ -6,6 +6,9 @@ import { transcribeAudio, generateBriefing, generateTTS } from '../../services/a
 import VoiceRecorder from './VoiceRecorder';
 
 const TODAY = new Date().toISOString().slice(0, 10);
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_PDF_TYPES = ['application/pdf'];
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export default function BriefingForm({ projectId, userEmail, onSaved }) {
   const [briefingDate, setBriefingDate] = useState(TODAY);
@@ -17,6 +20,8 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
   const [dispatchPhone, setDispatchPhone] = useState('');
   const [expectedTrucks, setExpectedTrucks] = useState('');
   const [startTime, setStartTime] = useState('07:00');
+  const [pdfFiles, setPdfFiles] = useState([]);
+  const [photoFiles, setPhotoFiles] = useState([]);
   const [saving, setSaving] = useState(false);
   const [savingStatus, setSavingStatus] = useState('');
   const [error, setError] = useState('');
@@ -57,6 +62,27 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
         recordingDurationMs = voiceRecording.durationMs;
       }
 
+      // Upload PDFs to drafts/{briefingId}/pdfs/
+      setSavingStatus('Uploading files...');
+      const uploadedPdfs = [];
+      for (const file of pdfFiles) {
+        const path = `drafts/${briefingRef.id}/pdfs/${file.name}`;
+        const storageRef = ref(storage, path);
+        await uploadBytes(storageRef, file, { contentType: file.type });
+        const url = await getDownloadURL(storageRef);
+        uploadedPdfs.push({ name: file.name, url });
+      }
+
+      // Upload photos to drafts/{briefingId}/photos/
+      const uploadedPhotos = [];
+      for (const file of photoFiles) {
+        const path = `drafts/${briefingRef.id}/photos/${file.name}`;
+        const storageRef = ref(storage, path);
+        await uploadBytes(storageRef, file, { contentType: file.type });
+        const url = await getDownloadURL(storageRef);
+        uploadedPhotos.push({ name: file.name, url });
+      }
+
       await setDoc(briefingRef, {
         projectId,
         originalInput: inputMode === 'text' ? trimmedText : '',
@@ -66,6 +92,8 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
         recordingMimeType,
         recordingDurationMs,
         transcriptionStatus: inputMode === 'voice' ? 'pending' : null,
+        pdfUrls: uploadedPdfs,
+        photoUrls: uploadedPhotos,
         status: 'draft',
         isActive: false,
         briefingDate,
@@ -175,7 +203,7 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
             />
             <p className="text-xs text-gray-400 mt-1">
-              AI will rewrite this as a professional safety briefing in Step 3.2.
+              AI will rewrite this as a professional safety briefing.
             </p>
           </>
         ) : (
@@ -266,6 +294,89 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
           />
         </div>
+      </div>
+
+      {/* PDF Attachments */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          PDF Attachments <span className="text-gray-400 font-normal">(optional, max 10MB each)</span>
+        </label>
+        <input
+          type="file"
+          accept=".pdf"
+          multiple
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            const invalid = files.find(f => !ALLOWED_PDF_TYPES.includes(f.type));
+            if (invalid) {
+              setError(`"${invalid.name}" is not a PDF file.`);
+              e.target.value = '';
+              return;
+            }
+            const tooBig = files.find(f => f.size > MAX_FILE_SIZE);
+            if (tooBig) {
+              setError(`"${tooBig.name}" exceeds 10MB limit.`);
+              e.target.value = '';
+              return;
+            }
+            setError('');
+            setPdfFiles(files);
+          }}
+          className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+        />
+        {pdfFiles.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {pdfFiles.map((f, i) => (
+              <p key={i} className="text-xs text-gray-500 flex items-center gap-1">
+                <span className="text-red-500">📄</span> {f.name} <span className="text-gray-400">({(f.size / 1024 / 1024).toFixed(1)}MB)</span>
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Photo Attachments */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Site Photos <span className="text-gray-400 font-normal">(optional, jpg/png/webp, max 10MB each)</span>
+        </label>
+        <input
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp"
+          multiple
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            const invalid = files.find(f => !ALLOWED_PHOTO_TYPES.includes(f.type));
+            if (invalid) {
+              setError(`"${invalid.name}" is not a supported image (jpg, png, webp).`);
+              e.target.value = '';
+              return;
+            }
+            const tooBig = files.find(f => f.size > MAX_FILE_SIZE);
+            if (tooBig) {
+              setError(`"${tooBig.name}" exceeds 10MB limit.`);
+              e.target.value = '';
+              return;
+            }
+            setError('');
+            setPhotoFiles(files);
+          }}
+          className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+        />
+        {photoFiles.length > 0 && (
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {photoFiles.map((f, i) => (
+              <div key={i} className="relative">
+                <img
+                  src={URL.createObjectURL(f)}
+                  alt={f.name}
+                  className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                />
+                <p className="text-[10px] text-gray-400 truncate mt-0.5">{f.name}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <button

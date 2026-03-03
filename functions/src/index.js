@@ -348,12 +348,36 @@ exports.generateTTS = onCall({ secrets: [OPENAI_API_KEY], timeoutSeconds: 300 },
       audioUrls[fieldName] = url;
     }
 
-    await db.collection('briefings').doc(briefingId).update({
+    // 4. Atomic publish — activate new briefing + deactivate old one in a batch
+    const briefingRef = db.collection('briefings').doc(briefingId);
+    const projectId = briefing.projectId;
+
+    // Find any currently active briefing for this project (to deactivate)
+    const activeSnap = await db.collection('briefings')
+      .where('projectId', '==', projectId)
+      .where('isActive', '==', true)
+      .get();
+
+    const batch = db.batch();
+
+    // Deactivate old active briefing(s)
+    activeSnap.docs.forEach((doc) => {
+      if (doc.id !== briefingId) {
+        batch.update(doc.ref, { isActive: false });
+      }
+    });
+
+    // Activate + publish the new briefing with audio URLs
+    batch.update(briefingRef, {
       ...audioUrls,
+      status: 'published',
+      isActive: true,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    console.log('All TTS audio generated and saved', { briefingId });
+    await batch.commit();
+
+    console.log('All TTS audio generated, briefing published', { briefingId, projectId });
     return { success: true };
   } catch (err) {
     console.error('generateTTS failed:', err);

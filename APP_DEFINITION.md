@@ -68,7 +68,7 @@ haulerapp/
 
 **projects/** — `name`, `createdAt`, `isActive`
 
-**briefings/** — `projectId`, `originalInput`, `generatedBriefingEn/Pu/Hi`, `audioUrlEn/Pu/Hi`, `pdfUrls [{name,url}]`, `photoUrls [{name,url}]`, `status` (draft|processing|published|error), `isActive`, `briefingDate`, `createdBy`, `ccPhone`, `dispatchName`, `dispatchPhone`, `expectedTrucks`, `expectedStartTime`, `smsSent`, `version`, `createdAt`, `updatedAt`
+**briefings/** — `projectId`, `originalInput`, `generatedBriefingEn/Pu/Hi`, `audioUrlEn/Pu/Hi`, `pdfUrls [{name,url}]`, `photoUrls [{name,url}]`, `status` (draft|generated|published|error), `isActive`, `briefingDate`, `createdBy`, `ccPhone`, `dispatchName`, `dispatchPhone`, `expectedTrucks`, `expectedStartTime`, `smsSent`, `version`, `createdAt`, `updatedAt`
 
 **acknowledgements/** — ID: `{briefingId}_{unitNumber}_{lastNameLower}` (deterministic). Fields: `briefingId`, `briefingVersion`, `projectId`, `driverFirstName`, `driverLastName`, `company`, `unitNumber`, `phone`, `language`, `timestamp` (server-set)
 

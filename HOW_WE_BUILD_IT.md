@@ -12,35 +12,9 @@
 
 **Section 2: Admin Screens (2.1–2.4)** — Admin login with custom claims, dashboard with live ack count, briefing creation form, voice recorder (Chrome webm + Safari mp4).
 
-**Section 3 (partial): AI Integration (3.1–3.3)** — Whisper transcription working, GPT-4o-mini briefing generation working, Punjabi+Hindi translation working.
+**Section 3: AI Integration (3.1–3.4)** — Whisper transcription, GPT-4o-mini briefing generation + translation (EN/PU/HI), TTS audio generation (alloy/shimmer voices), auto-publish after TTS completes.
 
----
-
-## Current: Section 3 (remaining)
-
-**Step 3.4 — TTS audio generation (English + Punjabi + Hindi)**
-- Cloud Function calls OpenAI TTS for all 3 language briefings
-- Audio stored at `published/{briefingId}/audio/en.mp3`, `pu.mp3`, `hi.mp3`
-- URLs written back to Firestore briefing doc
-- Generated ONCE on publish, served to ALL drivers
-- **Test:** Select language → tap Start Briefing → real TTS audio plays in that language
-- **User test:** Listen to all 3 audio versions. Voice clear? Pacing right?
-
----
-
-## Upcoming: Section 4 — PDF Upload (4.1–4.2)
-
-**Step 4.1 — PDF + Photo upload on admin side**
-- Two upload areas on briefing form: PDFs (max 10MB) + Photos (jpg/png/webp, max 10MB)
-- Stored at `drafts/{briefingId}/pdfs/` and `photos/`
-- Copied to `published/` on publish; drafts deleted
-- **Test:** Upload PDF and photo. Wrong file type → rejected.
-
-**Step 4.2 — PDF + Photo display on driver side**
-- Photos inline in briefing (between text and PDF list)
-- PDFs as tappable cards → open in new tab
-- Audio keeps playing while viewing
-- **Test:** Full end-to-end with photo inline + PDF card.
+**Section 4: PDF + Photo Upload (4.1–4.2)** — Admin uploads PDFs + photos on briefing form (validated, max 10MB). Driver sees photos inline (2-col grid) + PDF tappable cards. Opens in new tab so audio keeps playing.
 
 ---
 
@@ -102,4 +76,4 @@
 | Test on phone after every step | Every step |
 | Review AI briefing quality | 3.2 ✅ |
 | Review Punjabi/Hindi translation | 3.3 ✅ |
-| Listen to TTS audio | 3.4 |
+| Listen to TTS audio | 3.4 ✅ |
