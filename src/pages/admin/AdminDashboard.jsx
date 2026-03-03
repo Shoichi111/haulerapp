@@ -15,11 +15,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [unpublishing, setUnpublishing] = useState(false);
 
-  // Redirect to login if not authenticated
-  if (!authLoading && !user) {
-    return <Navigate to="/admin" replace />;
-  }
-
   useEffect(() => {
     if (!user) return;
 
@@ -83,6 +78,11 @@ export default function AdminDashboard() {
     } finally {
       setUnpublishing(false);
     }
+  }
+
+  // Redirect to login if not authenticated (must be after all hooks)
+  if (!authLoading && !user) {
+    return <Navigate to="/admin" replace />;
   }
 
   if (authLoading || loading) {

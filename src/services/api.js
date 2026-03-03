@@ -19,6 +19,9 @@ export const transcribeAudio = httpsCallable(functions, 'transcribeAudio');
 // Briefing translation — re-translates English briefing to Punjabi + Hindi
 export const translateBriefing = httpsCallable(functions, 'translateBriefing');
 
+// TTS audio generation — generates MP3 audio for all 3 languages via Cloud Function
+export const generateTTS = httpsCallable(functions, 'generateTTS');
+
 // Acknowledgement submission — validates + saves to Firestore via Cloud Function
 export const submitAcknowledgement = httpsCallable(functions, 'submitAcknowledgement');
 

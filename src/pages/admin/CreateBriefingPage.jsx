@@ -11,10 +11,6 @@ export default function CreateBriefingPage() {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  if (!authLoading && !user) {
-    return <Navigate to="/admin" replace />;
-  }
-
   useEffect(() => {
     if (!user) return;
 
@@ -35,6 +31,11 @@ export default function CreateBriefingPage() {
 
     fetchProject();
   }, [user]);
+
+  // Redirect to login if not authenticated (must be after all hooks)
+  if (!authLoading && !user) {
+    return <Navigate to="/admin" replace />;
+  }
 
   if (authLoading || loading) {
     return (

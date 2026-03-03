@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { collection, doc, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, storage } from '../../services/firebase';
-import { transcribeAudio, generateBriefing } from '../../services/api';
+import { transcribeAudio, generateBriefing, generateTTS } from '../../services/api';
 import VoiceRecorder from './VoiceRecorder';
 
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -90,6 +90,10 @@ export default function BriefingForm({ projectId, userEmail, onSaved }) {
       // Generate English briefing + auto-translate to Punjabi/Hindi
       setSavingStatus('Generating briefing...');
       await generateBriefing({ briefingId: briefingRef.id });
+
+      // Generate TTS audio for all 3 languages
+      setSavingStatus('Generating audio...');
+      await generateTTS({ briefingId: briefingRef.id });
 
       onSaved();
     } catch (err) {
